@@ -26,3 +26,57 @@ theme_set(theme_bw())
 sponge_metadata <- read.delim("SraRunTable.txt", header=TRUE, sep=",")
 ```
 
+```{r}
+path <- "~/CC3_sponge/Samples" # CHANGE ME to the directory containing the fastq files after unzipping.
+list.files(path)
+```
+## filtration et éliminations des sequences basse qualité
+```{r}
+# Sort ensures forward/reverse reads are in same order
+fnFs <- sort(list.files(path, pattern="_1.fastq.gz"))
+fnRs <- sort(list.files(path, pattern="_2.fastq.gz"))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`,1)
+# Specify the full path to the fnFs and fnRs
+fnFs <- file.path(path, fnFs)
+fnRs <- file.path(path, fnRs)
+print(fnRs)
+```
+Le plot quality profile nous permets d'analyser les nucléotides pour lesquels la qualité du séquençage décroit. 
+Pour les séquences forward, qui sont de meilleures qulités que les reverses dû à la méthode de séquençage, la qualité décroit à partir de 240 nucléotides. 
+```{r}
+plotQualityProfile(fnFs[1:3])
+```
+
+```{r}
+plotQualityProfile(fnRs[1:3])
+```
+```{r}
+# Place filtered files in filtered/ subdirectory
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+names(filtFs) <- sample.names
+names(filtRs) <- sample.names
+sample.names
+print(filtFs)
+```
+Nous coupons ici les séquences au niveau des nucléotides précédemment énoncés. Nous choisissons de ne couper qu'à 200 nucléotides pour les reverse pour garder un overlap assez important. 
+```{r}
+out<-filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,200),
+              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
+```
+```{r}
+head(out)
+```
+
+
+
+
+
+
+
+
+
+
+

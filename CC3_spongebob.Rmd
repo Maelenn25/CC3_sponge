@@ -21,3 +21,8 @@ library(igraph)
 library(ggnetwork)
 theme_set(theme_bw())
 ```
+
+```{r}
+sponge_metadata <- read.delim("SraRunTable.txt", header=TRUE, sep=",")
+```
+

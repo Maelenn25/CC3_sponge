@@ -1,0 +1,23 @@
+---
+title: "R Notebook"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 2
+---
+# Dada2
+## chargement des librairies
+```{r}
+library(dada2)
+library(phyloseq)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(ade4)
+library(ggrepel)
+library(lattice)
+library(caret)
+library(igraph)
+library(ggnetwork)
+theme_set(theme_bw())
+```

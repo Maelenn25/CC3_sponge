@@ -21,6 +21,11 @@ library(igraph)
 library(ggnetwork)
 theme_set(theme_bw())
 ```
+Ici nous récupérons la taxonomie silva afin d'analyser et d'assigner les taxonomies.
+```{bash}
+wget https://zenodo.org/record/3986799/files/silva_nr99_v138_train_set.fa.gz
+wget https://zenodo.org/record/3986799/files/silva_species_assignment_v138.fa.gz
+```
 
 ```{r}
 sponge_metadata <- read.delim("SraRunTable.txt", header=TRUE, sep=",")
@@ -69,11 +74,93 @@ out<-filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,200),
 ```{r}
 head(out)
 ```
+# Learn the Error Rates
+ Nous allons ici utiliser des lignes de commandes qui vont permettre d'apprendre à la machine les différents profils d'erreurs générées lors du séquençage. L'opération est faite sur les séquences reverse et forward.
+ 
+```{r}
+errF <- learnErrors(filtFs, multithread=TRUE)
+```
 
+```{r}
+errR <- learnErrors(filtRs, multithread=TRUE)
+```
+ici nous visualisons la probabilité d'obtenir une erreur de la machine remplaçant une base par une autre (A→C, A→G, ...) le taux d'erreur sont indiqués pour chaque combinaison possible pour les séquences reverse et forward. 
+Chaque point représentent les taux d'erreur observés pour chaque score de qualité du consensus. La ligne noire montre le taux d'erreur estimés après convergence de l'algorithme d'apprentissage machine et la ligne rouge montre le taux d'erreur attendus selon la définition nominale du Q-score.
+```{r}
+plotErrors(errF, nominalQ=TRUE)
+```
 
+```{r}
+plotErrors(errR, nominalQ=TRUE)
+```
+# Sample Inference
+Ici nous créons une autre variable "dadaFs" dans laquelle nous mettons les fichiers obtenus après avoir filtré et appliqué le profil d'erreur à nos séquences. Nous allons faire la même chose avec dadaRS.
 
+```{r}
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
+```
 
+```{r}
+dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+```
+Cette commande nous permet de visualiser le résultat global qu'on retrouve classé dans la liste dadaFs. Ils nous indiquent que sur les séquences on retrouve 1010 séquences qui correspondent aux vrais variants, par rapport aux 37907 séquences. 
+```{r}
+dadaFs[[1]]
+```
+# Merge paired reads
+Ici nous voulons mettre en une seule séquence double brin les Forwards et les Reverses. Nous pouvons faire cette opération grâce aux overlaps. Cela se fait grâce à un alignement entre les forwards et les reverses qui vont permettre de contruire les contigs.
+```{r}
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+```
+# Construct sequence table
+Nous allons construire une table des variations de séquence dans les amplicons (ASV) qui permet une meilleure résolution que les tables OTUs 97%
+```{r}
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+```
+```{r}
+# Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+```
+# Remove chimeras
+Malgré qu'on ait pu appliquer les modèles d'erreurs aux séquences, il reste des chimères. Ces chimères sont facilement reconnaissables par la machine et peuvent etre réparées en y rajoutant les parties droites et gauche des 2 séquences les plus abondantes.
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+```
+Ici on peut voir qu'on à 22% de chimères dans notre jeu de donnée. Ce chiffre important peut être dû à la qualité des séquences reverse qui était assez moyenne sur la fin.
+```{r}
+1-sum(seqtab.nochim)/sum(seqtab)
+```
+# Track reads through the pipeline
+Ce code nous permet de visualiser le nombre de séquences obtenues à la suite de toutes nos manipulations de filtrage. Ici nous pouvons voir qu'on a pu récupérer la plupart de nos séquences brutes, ce qui est signe d'une bonne qualité de séquençage globale (malgré les 22% de chimères).
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+# If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+# Assign taxonomy
 
+Nous créons ainsi une variable qui va recevoir les espèces obtenues grâce à Silva
+
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/CC3_sponge/silva_nr99_v138_train_set.fa.gz", multithread=TRUE)
+```
+
+```{r}
+taxa <- addSpecies(taxa, "/home/rstudio/CC3_sponge/silva_species_assignment_v138.fa.gz")
+```
+On remarque donc après avoir affiché la table qu'on a créée on obtient une majorité de  Alphaproteobacteries et plus précisément les bactéries de la clade SAR11 (=Candidatus Pelagibacter ubique). En effet, cet ordre de bactérie est l'ordre le plus représenté dans les océans : elle a une répartition mondiale. Ce résultat est donc cohérent. 
+```{r}
+taxa.print <- taxa # Removing sequence rownames for display only
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
 
 
 

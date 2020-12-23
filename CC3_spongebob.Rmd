@@ -67,7 +67,7 @@ print(filtFs)
 ```
 Nous coupons ici les séquences au niveau des nucléotides précédemment énoncés. Nous choisissons de ne couper qu'à 200 nucléotides pour les reverse pour garder un overlap assez important. 
 ```{r}
-out<-filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,200),
+out<-filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(260,200),
               maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
               compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
 ```
@@ -161,6 +161,7 @@ taxa.print <- taxa # Removing sequence rownames for display only
 rownames(taxa.print) <- NULL
 head(taxa.print)
 ```
+
 
 
 

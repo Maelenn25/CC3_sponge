@@ -31,6 +31,7 @@ wget https://zenodo.org/record/3986799/files/silva_species_assignment_v138.fa.gz
 sponge_metadata <- read.delim("SraRunTable.txt", header=TRUE, sep=",")
 ```
 
+
 ```{r}
 path <- "~/CC3_sponge/Samples" # CHANGE ME to the directory containing the fastq files after unzipping.
 list.files(path)

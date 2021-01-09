@@ -270,11 +270,11 @@ ps
 ```
 
 ```{r}
-plot_richness(ps, x="time", measures=c("Shannon", "Simpson"), color="Espece")
+plot_richness(ps, x="time", measures=c("Shannon", "Simpson"), color="traitement")
 ```
 
 ```{r}
-plot_richness(ps, x="time", measures=c("Shannon", "Simpson"), color="Eponge", shape = "traitement")
+plot_richness(ps, x="sample.names", measures=c("Shannon"), color="Eponge", shape = "traitement")
 ```
 ## Filtrage de la taxonomie
 
@@ -462,11 +462,20 @@ ps.top20 <- prune_taxa(top20, ps.top20)
 plot_bar(ps.top20, x="Espece", fill="Family") + facet_wrap(~traitement, scales="free_x")
 ```
 
-
-
-
-
-
+#analyse en reseau
+```{r}
+net <- make_network(ps, max.dist=0.8)
+sampledata <- data.frame(sample_data(ps))
+V(net)$Eponge <- sampledata[names(V(net)), "Espece"]
+V(net)$time <- sampledata[names(V(net)), "traitement"]
+net_graph <- ggnetwork(net)
+ggplot(net_graph, aes(x = x, y = y, xend = xend, yend = yend), layout = "fruchtermanreingold") +
+  geom_edges(color = "darkgray") +
+  geom_nodes(aes(color = Eponge, shape = time),  size = 3 ) +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.key.height = unit(0.5,"line")) +
+  guides(col = guide_legend(override.aes = list(size = .5)))
+```
 
 
 

@@ -123,6 +123,7 @@ Nous allons construire une table des variations de séquence dans les amplicons 
 seqtab <- makeSequenceTable(mergers)
 dim(seqtab)
 ```
+
 ```{r}
 # Inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
@@ -391,6 +392,7 @@ plot_ordination(pslog, out.wuf.log, color = "Espece", shape="time") + labs(col =
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
 ```
+
 ```{r}
 plot_ordination(ps.prop, ord.nmds.bray, color="Espece", shape="traitement", title="Bray NMDS")
 ```
@@ -461,7 +463,18 @@ ps.top20 <- transform_sample_counts(ps2, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 plot_bar(ps.top20, x="Espece", fill="Family") + facet_wrap(~traitement, scales="free_x")
 ```
-
+```{r}
+top20 <- names(sort(taxa_sums(ps2), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps2, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Espece", fill="Order") + facet_wrap(~traitement, scales="free_x")
+```
+```{r}
+top20 <- names(sort(taxa_sums(ps2), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps2, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Espece", fill="Genus") + facet_wrap(~traitement, scales="free_x")
+```
 #analyse en reseau
 ```{r}
 net <- make_network(ps, max.dist=0.8)
